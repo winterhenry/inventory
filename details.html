@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Details</title>
+</head>
+<body>
+    <h1 id="item-title">Loading...</h1>
+    <p id="item-description">Please wait...</p>
+
+    <script>
+        // 1. Get the "item" parameter from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const itemID = urlParams.get('item');
+
+        // 2. Simple database of your stock
+        const stockDatabase = {
+            "steel-bolt": {
+                name: "Stainless Steel Bolt (M10)",
+                desc: "Grade 316 stainless steel. High corrosion resistance. Stock level: 150 units."
+            },
+            "copper-pipe": {
+                name: "Copper Pipe (15mm x 3m)",
+                desc: "Half-hard copper tube suitable for domestic hot and cold water services. Stock level: 45 units."
+            }
+        };
+
+        // 3. Display the details on the page
+        if (itemID && stockDatabase[itemID]) {
+            document.getElementById('item-title').innerText = stockDatabase[itemID].name;
+            document.getElementById('item-description').innerText = stockDatabase[itemID].desc;
+        } else {
+            document.getElementById('item-title').innerText = "Item Not Found";
+            document.getElementById('item-description').innerText = "The scanned item code does not exist in the database.";
+        }
+    </script>
+</body>
+</html>

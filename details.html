@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instrument Registry</title>
+    <title>Instrument Inventory</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -20,7 +20,7 @@
             background: #ffffff;
             border-radius: 16px;
             padding: 30px;
-            max-width: 440px;
+            max-width: 420px;
             width: 100%;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             box-sizing: border-box;
@@ -36,16 +36,15 @@
         }
         h1 {
             font-size: 26px;
-            margin: 0 0 20px 0;
+            margin: 0 0 15px 0;
             color: #1d1d1f;
             text-align: center;
         }
-        p.intro-text {
+        p {
             font-size: 15px;
             line-height: 1.6;
             color: #515154;
-            margin: 0 0 20px 0;
-            text-align: center;
+            margin: 0 0 15px 0;
         }
         .form-group {
             margin-bottom: 15px;
@@ -87,6 +86,14 @@
         button:hover {
             background-color: #0077ed;
         }
+        .details-box {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e5e5;
+        }
+        .error {
+            color: #ff453a;
+        }
         .divider {
             text-align: center;
             margin: 10px 0;
@@ -94,51 +101,8 @@
             color: #86868b;
             font-weight: bold;
         }
-        
-        /* Details Grid styling */
-        .details-box {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e5e5;
-        }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #f5f5f7;
-            font-size: 14px;
-        }
-        .detail-row strong {
-            color: #86868b;
-            font-weight: 500;
-        }
-        .detail-row span {
-            font-weight: 600;
-            color: #1d1d1f;
-            text-align: right;
-            padding-left: 10px;
-        }
-        .remarks-box {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed #e5e5e5;
-        }
-        .remarks-box strong {
-            font-size: 14px;
-            color: #86868b;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .remarks-box p {
-            font-size: 14px;
-            line-height: 1.5;
-            color: #1d1d1f;
-            margin: 0;
-        }
-        .error {
-            color: #ff453a;
-        }
     </style>
+    <!-- PapaParse parses the Excel/CSV file -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
@@ -146,9 +110,9 @@
     <div class="card">
         <div class="category" id="display-category">Inventory</div>
         <h1 id="display-title">Loading...</h1>
-        <p class="intro-text" id="display-desc">Please wait while the database loads.</p>
+        <p id="display-desc">Please wait while the database loads.</p>
 
-        <!-- Search & Selection Section -->
+        <!-- Search & Selection Section (Hidden until loaded) -->
         <div id="search-section" style="display: none;">
             <div class="form-group">
                 <label for="code-select">Select Specific Code:</label>
@@ -161,39 +125,30 @@
 
             <div class="form-group">
                 <label for="code-search">Search by Code:</label>
-                <input type="text" id="code-search" placeholder="Type specific code...">
+                <input type="text" id="code-search" placeholder="Type code (e.g., sax-045)">
             </div>
             
             <button id="search-btn">View Instrument Details</button>
         </div>
 
-        <!-- Details Grid Display Section -->
+        <!-- Details Display Section (Hidden until an item is chosen) -->
         <div class="details-box" id="details-section" style="display: none;">
-            <h2 id="item-brand-model" style="font-size: 20px; margin: 0 0 15px 0; text-align: center;">Brand + Model</h2>
-            
-            <div class="detail-row"><strong>Ref. Code</strong><span id="item-code"></span></div>
-            <div class="detail-row"><strong>Serial Number</strong><span id="item-serial"></span></div>
-            <div class="detail-row"><strong>Source</strong><span id="item-source"></span></div>
-            <div class="detail-row"><strong>Location</strong><span id="item-location"></span></div>
-            <div class="detail-row"><strong>Student</strong><span id="item-student"></span></div>
-            
-            <div class="remarks-box">
-                <strong>Remarks</strong>
-                <p id="item-remarks"></p>
-            </div>
+            <h2 id="item-name" style="font-size: 20px; margin: 0 0 10px 0;">Instrument Name</h2>
+            <p><strong>Specific Code:</strong> <span id="item-code">N/A</span></p>
+            <p id="item-desc">Instrument description will appear here.</p>
         </div>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const itemQuery = urlParams.get('item');
+        const itemQuery = urlParams.get('item'); // e.g., "saxophone" or "sax-045"
 
         let globalDatabase = [];
 
         if (itemQuery) {
             fetch('inventory.csv')
                 .then(response => {
-                    if (!response.ok) throw new Error("Could not load inventory.csv");
+                    if (!response.ok) throw new Error("Could not fetch inventory.csv");
                     return response.text();
                 })
                 .then(csvText => {
@@ -215,29 +170,24 @@
         }
 
         function processQuery(query) {
-            // 1. Look for a specific ID in "REF. CODE"
-            const specificItem = globalDatabase.find(row => 
-                row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() === query
-            );
+            // 1. Check if the scanned ID is a specific instrument (e.g., sax-045)
+            const specificItem = globalDatabase.find(row => row.id && row.id.trim().toLowerCase() === query);
 
             if (specificItem) {
+                // If it is a specific item, display it directly, but also load the search/selector for its category
                 displayItem(specificItem);
-                setupSearchSection(specificItem['ITEMS'].trim().toLowerCase(), specificItem['REF. CODE']);
+                setupSearchSection(specificItem.category.trim().toLowerCase(), specificItem.id);
             } else {
-                // 2. Otherwise, look for matching categories in "ITEMS"
-                const categoryExists = globalDatabase.some(row => 
-                    row['ITEMS'] && row['ITEMS'].trim().toLowerCase() === query
-                );
+                // 2. Otherwise, check if they scanned a general category (e.g., saxophone)
+                const categoryExists = globalDatabase.some(row => row.category && row.category.trim().toLowerCase() === query);
 
                 if (categoryExists) {
-                    // Try to find a general row where REF. CODE matches the category name
-                    const generalRow = globalDatabase.find(row => 
-                        row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() === query
-                    );
+                    // Try to find the general category information row (where id matches the category name)
+                    const generalRow = globalDatabase.find(row => row.id && row.id.trim().toLowerCase() === query);
                     
                     document.getElementById('display-category').innerText = query;
-                    document.getElementById('display-title').innerText = generalRow ? `${generalRow['BRAND']} ${generalRow['MODEL']}` : (query.charAt(0).toUpperCase() + query.slice(1) + "s");
-                    document.getElementById('display-desc').innerText = generalRow ? generalRow['Remarks'] : "Select or search for a specific code below.";
+                    document.getElementById('display-title').innerText = generalRow ? generalRow.name : (query.charAt(0).toUpperCase() + query.slice(1) + "s");
+                    document.getElementById('display-desc').innerText = generalRow ? generalRow.desc : "Select or search for a specific code below.";
                     
                     setupSearchSection(query, null);
                 } else {
@@ -246,44 +196,47 @@
             }
         }
 
+        // Sets up the search bar and dropdown list filtered by the specific category
         function setupSearchSection(categoryName, currentSelectedId) {
             const selectEl = document.getElementById('code-select');
             
-            // Filter database to get all items matching this category, excluding general row
+            // Filter database to get all items belonging to this category (excluding the general landing row)
             const categoryItems = globalDatabase.filter(row => 
-                row['ITEMS'] && row['ITEMS'].trim().toLowerCase() === categoryName &&
-                row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() !== categoryName
+                row.category && row.category.trim().toLowerCase() === categoryName &&
+                row.id && row.id.trim().toLowerCase() !== categoryName
             );
 
-            // Populate Dropdown
+            // Populate the dropdown selection
             categoryItems.forEach(item => {
                 const opt = document.createElement('option');
-                opt.value = item['REF. CODE'];
-                opt.textContent = `${item['REF. CODE']} - ${item['BRAND']} ${item['MODEL']}`;
-                if (currentSelectedId && item['REF. CODE'].trim().toLowerCase() === currentSelectedId.trim().toLowerCase()) {
+                opt.value = item.id;
+                opt.textContent = `${item.id} - ${item.name}`;
+                if (currentSelectedId && item.id.trim().toLowerCase() === currentSelectedId.trim().toLowerCase()) {
                     opt.selected = true;
                 }
                 selectEl.appendChild(opt);
             });
 
+            // Make the search controls visible
             document.getElementById('search-section').style.display = 'block';
 
-            // Button Click logic
+            // Button click handling
             document.getElementById('search-btn').addEventListener('click', function() {
                 const dropdownValue = selectEl.value;
                 const searchValue = document.getElementById('code-search').value.trim();
+
+                // Prioritize text search if typed, otherwise use dropdown selection
                 const targetId = searchValue ? searchValue : dropdownValue;
 
                 if (targetId) {
-                    const found = globalDatabase.find(row => 
-                        row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() === targetId.toLowerCase()
-                    );
+                    const found = globalDatabase.find(row => row.id && row.id.trim().toLowerCase() === targetId.toLowerCase());
                     if (found) {
                         displayItem(found);
-                        selectEl.value = found['REF. CODE'];
-                        document.getElementById('code-search').value = "";
+                        // Sync the dropdown selection to match the search result
+                        selectEl.value = found.id;
+                        document.getElementById('code-search').value = ""; // Clear text box
                     } else {
-                        alert("Reference Code '" + targetId + "' not found in database.");
+                        alert("Code '" + targetId + "' not found in database.");
                     }
                 } else {
                     alert("Please select or type a specific code first.");
@@ -292,17 +245,13 @@
         }
 
         function displayItem(item) {
-            document.getElementById('display-category').innerText = item['ITEMS'] || "Instrument";
+            document.getElementById('display-category').innerText = item.category || "Instrument";
             
-            // Show the details block and fill in values from your exact Excel headers
+            // Show the details card
             document.getElementById('details-section').style.display = 'block';
-            document.getElementById('item-brand-model').innerText = `${item['BRAND'] || ''} ${item['MODEL'] || ''}`.trim() || "Unknown Instrument";
-            document.getElementById('item-code').innerText = item['REF. CODE'] || "N/A";
-            document.getElementById('item-serial').innerText = item['SERIAL NUMBER'] || "N/A";
-            document.getElementById('item-source').innerText = item['Source'] || "N/A";
-            document.getElementById('item-location').innerText = item['Location'] || "N/A";
-            document.getElementById('item-student').innerText = item['Sudent'] || "N/A"; // Matches Excel spelling "Sudent"
-            document.getElementById('item-remarks').innerText = item['Remarks'] || "No remarks provided.";
+            document.getElementById('item-name').innerText = item.name || "Unknown";
+            document.getElementById('item-code').innerText = item.id || "N/A";
+            document.getElementById('item-desc').innerText = item.desc || "No description available.";
         }
 
         function showError(title, message) {

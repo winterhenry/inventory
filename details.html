@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instrument Details</title>
+    <title>Instrument Registry</title>
     <style>
-        /* Mobile-friendly styling */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f5f5f7;
@@ -21,10 +20,9 @@
             background: #ffffff;
             border-radius: 16px;
             padding: 30px;
-            max-width: 400px;
+            max-width: 440px;
             width: 100%;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            text-align: center;
             box-sizing: border-box;
         }
         .category {
@@ -34,78 +32,286 @@
             color: #86868b;
             letter-spacing: 1px;
             margin-bottom: 8px;
+            text-align: center;
         }
         h1 {
-            font-size: 28px;
-            margin: 0 0 15px 0;
+            font-size: 26px;
+            margin: 0 0 20px 0;
             color: #1d1d1f;
+            text-align: center;
         }
-        p {
-            font-size: 16px;
+        p.intro-text {
+            font-size: 15px;
             line-height: 1.6;
             color: #515154;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1d1d1f;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 15px;
+            box-sizing: border-box;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+        }
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #0071e3;
+            background-color: #ffffff;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0077ed;
+        }
+        .divider {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #86868b;
+            font-weight: bold;
+        }
+        
+        /* Details Grid styling */
+        .details-box {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e5e5;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f7;
+            font-size: 14px;
+        }
+        .detail-row strong {
+            color: #86868b;
+            font-weight: 500;
+        }
+        .detail-row span {
+            font-weight: 600;
+            color: #1d1d1f;
+            text-align: right;
+            padding-left: 10px;
+        }
+        .remarks-box {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #e5e5e5;
+        }
+        .remarks-box strong {
+            font-size: 14px;
+            color: #86868b;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .remarks-box p {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #1d1d1f;
             margin: 0;
         }
         .error {
             color: #ff453a;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 
-    <div class="card" id="display-card">
-        <div class="category" id="instrument-category">Category</div>
-        <h1 id="instrument-name">Loading...</h1>
-        <p id="instrument-description">Please wait while the description loads.</p>
+    <div class="card">
+        <div class="category" id="display-category">Inventory</div>
+        <h1 id="display-title">Loading...</h1>
+        <p class="intro-text" id="display-desc">Please wait while the database loads.</p>
+
+        <!-- Search & Selection Section -->
+        <div id="search-section" style="display: none;">
+            <div class="form-group">
+                <label for="code-select">Select Specific Code:</label>
+                <select id="code-select">
+                    <option value="">-- Choose from List --</option>
+                </select>
+            </div>
+
+            <div class="divider">OR</div>
+
+            <div class="form-group">
+                <label for="code-search">Search by Code:</label>
+                <input type="text" id="code-search" placeholder="Type specific code...">
+            </div>
+            
+            <button id="search-btn">View Instrument Details</button>
+        </div>
+
+        <!-- Details Grid Display Section -->
+        <div class="details-box" id="details-section" style="display: none;">
+            <h2 id="item-brand-model" style="font-size: 20px; margin: 0 0 15px 0; text-align: center;">Brand + Model</h2>
+            
+            <div class="detail-row"><strong>Ref. Code</strong><span id="item-code"></span></div>
+            <div class="detail-row"><strong>Serial Number</strong><span id="item-serial"></span></div>
+            <div class="detail-row"><strong>Source</strong><span id="item-source"></span></div>
+            <div class="detail-row"><strong>Location</strong><span id="item-location"></span></div>
+            <div class="detail-row"><strong>Student</strong><span id="item-student"></span></div>
+            
+            <div class="remarks-box">
+                <strong>Remarks</strong>
+                <p id="item-remarks"></p>
+            </div>
+        </div>
     </div>
 
     <script>
-        // 1. Read the "?item=" parameter from the NFC scan URL
         const urlParams = new URLSearchParams(window.location.search);
-        const itemID = urlParams.get('item');
+        const itemQuery = urlParams.get('item');
 
-        // 2. Your Instrument Database
-        // You can easily add more instruments to this list by following the format.
-        const instruments = {
-            "saxophone": {
-                name: "Saxophone",
-                category: "Woodwind Instrument",
-                desc: "The saxophone is a family of woodwind instruments usually made of brass and played with a single-reed mouthpiece. Invented by Adolphe Sax in the 1840s, it is widely used in classical, marching band, and jazz music."
-            },
-            "trumpet": {
-                name: "Trumpet",
-                category: "Brass Instrument",
-                desc: "The trumpet is a brass instrument with a bright, powerful tone. It is played by blowing air through closed lips, producing a 'buzzing' sound that starts a standing wave vibration in the air column inside the instrument."
-            },
-            "guitar": {
-                name: "Acoustic Guitar",
-                category: "String Instrument",
-                desc: "A fretted musical instrument that typically has six strings. Sound is projected either acoustically through a hollow wooden body, or through electrical amplification."
-            },
-            "violin": {
-                name: "Violin",
-                category: "String Instrument",
-                desc: "Sometimes known as a fiddle, the violin is a wooden string instrument in the violin family. Most violins have a hollow wooden body and are played by drawing a bow across its four strings."
-            },
-            "viola":  {
-                name: "Viola",
-                category: "String Instrument",
-                desc: ""
-            }
-        };
+        let globalDatabase = [];
 
-        // 3. Update the HTML elements with the correct instrument details
-        if (itemID && instruments[itemID]) {
-            const data = instruments[itemID];
-            document.getElementById('instrument-category').innerText = data.category;
-            document.getElementById('instrument-name').innerText = data.name;
-            document.getElementById('instrument-description').innerText = data.desc;
+        if (itemQuery) {
+            fetch('inventory.csv')
+                .then(response => {
+                    if (!response.ok) throw new Error("Could not load inventory.csv");
+                    return response.text();
+                })
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            globalDatabase = results.data;
+                            processQuery(itemQuery.trim().toLowerCase());
+                        }
+                    });
+                })
+                .catch(err => {
+                    showError("Connection Error", "Could not load the database file.");
+                    console.error(err);
+                });
         } else {
-            // Error handling if the scanned code doesn't exist
-            document.getElementById('instrument-category').innerText = "Error";
-            document.getElementById('instrument-category').classList.add('error');
-            document.getElementById('instrument-name').innerText = "Instrument Not Found";
-            document.getElementById('instrument-description').innerText = "This NFC sticker is programmed with an invalid or missing instrument ID.";
+            showError("Invalid Scan", "No category or item code was detected in the URL.");
+        }
+
+        function processQuery(query) {
+            // 1. Look for a specific ID in "REF. CODE"
+            const specificItem = globalDatabase.find(row => 
+                row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() === query
+            );
+
+            if (specificItem) {
+                displayItem(specificItem);
+                setupSearchSection(specificItem['ITEMS'].trim().toLowerCase(), specificItem['REF. CODE']);
+            } else {
+                // 2. Otherwise, look for matching categories in "ITEMS"
+                const categoryExists = globalDatabase.some(row => 
+                    row['ITEMS'] && row['ITEMS'].trim().toLowerCase() === query
+                );
+
+                if (categoryExists) {
+                    // Try to find a general row where REF. CODE matches the category name
+                    const generalRow = globalDatabase.find(row => 
+                        row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() === query
+                    );
+                    
+                    document.getElementById('display-category').innerText = query;
+                    document.getElementById('display-title').innerText = generalRow ? `${generalRow['BRAND']} ${generalRow['MODEL']}` : (query.charAt(0).toUpperCase() + query.slice(1) + "s");
+                    document.getElementById('display-desc').innerText = generalRow ? generalRow['Remarks'] : "Select or search for a specific code below.";
+                    
+                    setupSearchSection(query, null);
+                } else {
+                    showError("Not Found", "No category or specific code matches '" + query + "'.");
+                }
+            }
+        }
+
+        function setupSearchSection(categoryName, currentSelectedId) {
+            const selectEl = document.getElementById('code-select');
+            
+            // Filter database to get all items matching this category, excluding general row
+            const categoryItems = globalDatabase.filter(row => 
+                row['ITEMS'] && row['ITEMS'].trim().toLowerCase() === categoryName &&
+                row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() !== categoryName
+            );
+
+            // Populate Dropdown
+            categoryItems.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item['REF. CODE'];
+                opt.textContent = `${item['REF. CODE']} - ${item['BRAND']} ${item['MODEL']}`;
+                if (currentSelectedId && item['REF. CODE'].trim().toLowerCase() === currentSelectedId.trim().toLowerCase()) {
+                    opt.selected = true;
+                }
+                selectEl.appendChild(opt);
+            });
+
+            document.getElementById('search-section').style.display = 'block';
+
+            // Button Click logic
+            document.getElementById('search-btn').addEventListener('click', function() {
+                const dropdownValue = selectEl.value;
+                const searchValue = document.getElementById('code-search').value.trim();
+                const targetId = searchValue ? searchValue : dropdownValue;
+
+                if (targetId) {
+                    const found = globalDatabase.find(row => 
+                        row['REF. CODE'] && row['REF. CODE'].trim().toLowerCase() === targetId.toLowerCase()
+                    );
+                    if (found) {
+                        displayItem(found);
+                        selectEl.value = found['REF. CODE'];
+                        document.getElementById('code-search').value = "";
+                    } else {
+                        alert("Reference Code '" + targetId + "' not found in database.");
+                    }
+                } else {
+                    alert("Please select or type a specific code first.");
+                }
+            });
+        }
+
+        function displayItem(item) {
+            document.getElementById('display-category').innerText = item['ITEMS'] || "Instrument";
+            
+            // Show the details block and fill in values from your exact Excel headers
+            document.getElementById('details-section').style.display = 'block';
+            document.getElementById('item-brand-model').innerText = `${item['BRAND'] || ''} ${item['MODEL'] || ''}`.trim() || "Unknown Instrument";
+            document.getElementById('item-code').innerText = item['REF. CODE'] || "N/A";
+            document.getElementById('item-serial').innerText = item['SERIAL NUMBER'] || "N/A";
+            document.getElementById('item-source').innerText = item['Source'] || "N/A";
+            document.getElementById('item-location').innerText = item['Location'] || "N/A";
+            document.getElementById('item-student').innerText = item['Sudent'] || "N/A"; // Matches Excel spelling "Sudent"
+            document.getElementById('item-remarks').innerText = item['Remarks'] || "No remarks provided.";
+        }
+
+        function showError(title, message) {
+            document.getElementById('display-category').innerText = "Error";
+            document.getElementById('display-category').classList.add('error');
+            document.getElementById('display-title').innerText = title;
+            document.getElementById('display-desc').innerText = message;
+            document.getElementById('search-section').style.display = 'none';
+            document.getElementById('details-section').style.display = 'none';
         }
     </script>
 </body>
